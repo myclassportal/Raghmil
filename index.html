@@ -30,6 +30,7 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      overscroll-behavior-y: contain;
     }
     .hidden { display: none !important; }
     .screen {
@@ -40,6 +41,7 @@
       display: none !important;
       flex-direction: column;
       align-items: center;
+      touch-action: pan-y;
     }
     .screen.active {
       display: flex !important;
@@ -1194,6 +1196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         gameState.stages = generateStagesForGame();
         gameState.currentStage = 0;
         gameState.score = 0;
+        clearGameState();
         saveGameState();
         saveState();
         showScreen('screen-game');
@@ -1290,10 +1293,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (gameState.currentScreen === 'report') {
                     showScreen('screen-report');
                     renderReport(gameState.totalScore >= Portal.requiredStars, gameState.totalScore);
-                } else if (activeState) {
-                    showScreen('screen-game');
-                    loadState();
-                    loadStage();
                 } else {
                     showScreen('screen-register');
                 }
@@ -1328,6 +1327,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const isMuted = GameAudio.isMuted;
     const btn = document.getElementById('btn-sound-toggle');
     if (btn) btn.innerText = isMuted ? '🔇 صدا: خاموش' : '🔊 صدا: روشن';
+
+    const unlockAudio = () => {
+        if (window.GameAudio && typeof GameAudio.getAudioContext === 'function') {
+            const ctx = GameAudio.getAudioContext();
+            if (ctx && (ctx.state === 'suspended' || ctx.state === 'interrupted')) {
+                ctx.resume();
+            }
+        }
+    };
+    ['touchstart', 'touchend', 'click'].forEach(evt => {
+        document.addEventListener(evt, unlockAudio, { passive: true });
+    });
 
     if ('serviceWorker' in navigator) {
         const hadExistingController = !!navigator.serviceWorker.controller;

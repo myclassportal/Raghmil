@@ -15,7 +15,7 @@ const GameAudio = {
                 this.audioCtx = new AudioCtx();
             }
         }
-        if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        if (this.audioCtx && (this.audioCtx.state === 'suspended' || this.audioCtx.state === 'interrupted')) {
             this.audioCtx.resume();
         }
         this.setupMasterOutput();
@@ -90,7 +90,7 @@ const GameAudio = {
     chunkToFiles(n) {
         n = parseInt(n);
         if (isNaN(n) || n === 0) return [];
-        
+
         const files = [];
         const h = Math.floor(n / 100);
         const rem = n % 100;
@@ -311,3 +311,25 @@ const GameAudio = {
         return this.isMuted;
     }
 };
+
+window.GameAudio = GameAudio;
+
+let hasUnlockedIOS = false;
+const handleIOSAudio = () => {
+    const ctx = GameAudio.getAudioContext();
+    if (!ctx) return;
+    if (!hasUnlockedIOS) {
+        const dummyBuffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = dummyBuffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        hasUnlockedIOS = true;
+    }
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+        ctx.resume();
+    }
+};
+['touchstart', 'touchend', 'click'].forEach(e => {
+    document.addEventListener(e, handleIOSAudio, { passive: true });
+});
